@@ -1,0 +1,5 @@
+{
+  "name": "P&L Tracker Pro",
+  "description": "A simple, modern web app for small businesses to track monthly income and expenses, view data in a spreadsheet-like grid, and analyze performance through a P&L dashboard with drill-downs and export options.",
+  "requestFramePermissions": []
+}

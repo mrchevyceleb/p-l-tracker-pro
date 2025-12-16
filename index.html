@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%230ea5e9' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M3 3v18h18'/><path d='M7 12v5'/><path d='M12 8v9'/><path d='M17 3v14'/></svg>">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>P&L Tracker Pro</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet">
+  <script type="importmap">
+{
+  "imports": {
+    "@supabase/supabase-js": "https://aistudiocdn.com/@supabase/supabase-js@^2.45.0",
+    "recharts": "https://aistudiocdn.com/recharts@^3.3.0",
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
+    "react/": "https://aistudiocdn.com/react@^19.2.0/",
+    "react": "https://aistudiocdn.com/react@^19.2.0",
+    "uuid": "https://aistudiocdn.com/uuid@^13.0.0"
+  }
+}
+</script>
+<style>
+  body {
+    font-family: 'Inter', sans-serif;
+  }
+  .recharts-tooltip-wrapper {
+    outline: none !important;
+  }
+  .recharts-default-tooltip {
+    background-color: #18181b !important;
+    border-color: #27272a !important;
+    border-radius: 0.5rem !important;
+  }
+   input[type="month"]::-webkit-calendar-picker-indicator {
+    filter: invert(0.8);
+    cursor: pointer;
+  }
+
+  /* Responsive Table Styles */
+  @media (max-width: 767px) {
+    .responsive-table thead {
+      display: none;
+    }
+    .responsive-table tbody, .responsive-table tr, .responsive-table td {
+      display: block;
+    }
+    .responsive-table tr {
+      margin-bottom: 1rem;
+      border: 1px solid #3f3f46; /* zinc-700 */
+      border-radius: 0.5rem;
+      overflow: hidden;
+      box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+    }
+    .responsive-table td {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.75rem 1rem;
+      border-bottom: 1px solid #3f3f46;
+      min-height: 50px;
+    }
+    .responsive-table td:last-child {
+      border-bottom: 0;
+    }
+    .responsive-table td::before {
+      content: attr(data-label);
+      font-weight: 600;
+      color: #a1a1aa; /* zinc-400 */
+      padding-right: 1rem;
+      flex-shrink: 0;
+    }
+    .responsive-table td .w-full {
+      flex-grow: 1;
+      text-align: right;
+    }
+  }
+</style>
+<link rel="stylesheet" href="/index.css">
+</head>
+  <body class="bg-zinc-950 text-zinc-200">
+    <div id="root"></div>
+    <script type="module" src="/index.tsx"></script>
+  </body>
+</html>
