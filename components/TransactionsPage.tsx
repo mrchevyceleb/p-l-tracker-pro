@@ -5,8 +5,7 @@ import TransactionsGrid from './TransactionsGrid';
 import Button from './ui/Button';
 import { exportToCsv } from '../utils';
 import { Frequency } from './RecurringTransactionModal';
-import ImportModeModal, { ImportMode } from './ImportModeModal';
-import BankStatementImportModal from './BankStatementImportModal';
+import CSVImportModal from './CSVImportModal';
 
 // Helper to format date as YYYY-MM-DD
 const formatDate = (date: Date): string => date.toISOString().slice(0, 10);
@@ -132,8 +131,7 @@ const TransactionsPage: React.FC<TransactionsPageProps> = ({
   const [typeFilter, setTypeFilter] = useState<'all' | 'income' | 'expense'>('all');
   
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [isImportModeModalOpen, setIsImportModeModalOpen] = useState(false);
-  const [isBankStatementModalOpen, setIsBankStatementModalOpen] = useState(false);
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
 
   const filteredTransactions = useMemo(() => {
     // Fix: Explicitly type `categoryMap` to prevent `get` from returning `unknown`.
@@ -201,18 +199,10 @@ const TransactionsPage: React.FC<TransactionsPageProps> = ({
   };
 
   const handleImportClick = () => {
-      setIsImportModeModalOpen(true);
+      setIsImportModalOpen(true);
   };
 
-  const handleImportModeSelect = (mode: ImportMode) => {
-      setIsImportModeModalOpen(false);
-      if (mode === 'standard') {
-          fileInputRef.current?.click();
-      } else if (mode === 'bank-statement') {
-          setIsBankStatementModalOpen(true);
-      }
-  };
-
+  // Legacy file change handler (kept for backwards compatibility)
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
       const file = e.target.files?.[0];
       if (!file) return;
@@ -366,15 +356,9 @@ const TransactionsPage: React.FC<TransactionsPageProps> = ({
         sortConfig={sortConfig}
       />
 
-      <ImportModeModal
-        isOpen={isImportModeModalOpen}
-        onClose={() => setIsImportModeModalOpen(false)}
-        onSelectMode={handleImportModeSelect}
-      />
-
-      <BankStatementImportModal
-        isOpen={isBankStatementModalOpen}
-        onClose={() => setIsBankStatementModalOpen(false)}
+      <CSVImportModal
+        isOpen={isImportModalOpen}
+        onClose={() => setIsImportModalOpen(false)}
         categories={categories}
         onImport={onImportTransactions}
       />
