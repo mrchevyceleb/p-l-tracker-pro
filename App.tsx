@@ -19,6 +19,7 @@ import RecurringSeriesManagerModal from './components/RecurringSeriesManagerModa
 import SubscriptionsPage from './components/SubscriptionsPage';
 import ConfirmationModal from './components/ui/ConfirmationModal';
 import DeleteRecurringTransactionModal from './components/DeleteRecurringTransactionModal';
+import DeleteSubscriptionModal from './components/DeleteSubscriptionModal';
 import { DEFAULT_TAX_CONFIG, SEED_CATEGORIES } from './constants';
 import { calculateTax } from './utils/tax';
 import Auth from './components/Auth';
@@ -382,6 +383,27 @@ const App: React.FC = () => {
       await supabase.from('transactions').delete().eq('recurring_id', deleteSeriesCandidateId);
       setDeleteSeriesCandidateId(null);
   };
+
+  const handleEndSubscription = async () => {
+      if (!deleteSeriesCandidateId) return;
+
+      // Get today's date to use as cutoff
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const todayStr = today.toISOString().slice(0, 10);
+
+      // Find all future transactions in this series and delete them
+      const seriesTxs = transactions.filter(t => t.recurring_id === deleteSeriesCandidateId);
+      const toDeleteIds = seriesTxs.filter(t => new Date(t.date) > today).map(t => t.id);
+
+      // Update local state - remove only future transactions
+      if (toDeleteIds.length > 0) {
+          setTransactions(prev => prev.filter(t => !toDeleteIds.includes(t.id)));
+          await supabase.from('transactions').delete().in('id', toDeleteIds);
+      }
+
+      setDeleteSeriesCandidateId(null);
+  };
   
   // RENDER LOADING / AUTH
   if (authLoading) {
@@ -505,14 +527,12 @@ const App: React.FC = () => {
         onDeleteSeries={handleDeleteTransactionSeries}
       />
       
-      <ConfirmationModal 
+      <DeleteSubscriptionModal
         isOpen={!!deleteSeriesCandidateId}
         onClose={() => setDeleteSeriesCandidateId(null)}
-        onConfirm={confirmDeleteSeries}
-        title="Delete Subscription History"
-        message="Are you sure? This will delete all past and future transactions associated with this series."
-        confirmLabel="Delete Series"
-        isDanger
+        onEndSubscription={handleEndSubscription}
+        onDeleteAll={confirmDeleteSeries}
+        subscriptionName={transactions.find(t => t.recurring_id === deleteSeriesCandidateId)?.name}
       />
 
     </div>

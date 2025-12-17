@@ -91,8 +91,6 @@ const datePresets = [
     }
 ];
 
-const today = new Date().toISOString().slice(0, 10);
-
 interface DashboardPageProps {
   transactions: Transaction[];
   categories: Category[];
@@ -129,18 +127,51 @@ const CustomTooltip: React.FC<any> = ({ active, payload, label }) => {
 };
 
 const DashboardPage: React.FC<DashboardPageProps> = ({ transactions, categories, taxRate, onOpenTaxSettings }) => {
+    const [activePreset, setActivePreset] = useState<string>('Last 30 Days');
     const [startDate, setStartDate] = useState(() => {
-        const today = new Date();
-        const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
-        return formatDate(startOfMonth);
+        const now = new Date();
+        const start = new Date(now);
+        start.setDate(start.getDate() - 30);
+        return formatDate(start);
     });
-    const [endDate, setEndDate] = useState(today);
-    const todayDate = useMemo(() => new Date(), []);
+    const [endDate, setEndDate] = useState(() => formatDate(new Date()));
 
     const filteredTransactions = useMemo(() => {
-        return transactions
-            .filter(tx => tx.date >= startDate && tx.date <= endDate)
-            .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+        // Parse dates for proper comparison
+        const startParts = startDate.split('-').map(Number);
+        const endParts = endDate.split('-').map(Number);
+        const startMs = new Date(startParts[0], startParts[1] - 1, startParts[2]).getTime();
+        const endMs = new Date(endParts[0], endParts[1] - 1, endParts[2], 23, 59, 59, 999).getTime();
+
+        // Debug: Log first few transactions to see date format
+        if (transactions.length > 0) {
+            console.log('=== DATE FILTER DEBUG ===');
+            console.log('Filter range:', startDate, 'to', endDate);
+            console.log('Sample transaction dates:', transactions.slice(0, 5).map(tx => ({ name: tx.name, date: tx.date, rawDate: JSON.stringify(tx.date) })));
+        }
+
+        const filtered = transactions.filter(tx => {
+            if (!tx.date || typeof tx.date !== 'string') {
+                console.log('Invalid date on transaction:', tx.name, tx.date);
+                return false;
+            }
+            const txParts = tx.date.split('-').map(Number);
+            const txMs = new Date(txParts[0], txParts[1] - 1, txParts[2]).getTime();
+            return txMs >= startMs && txMs <= endMs;
+        });
+
+        // More detailed debug
+        const incomeFiltered = filtered.filter(t => t.type === 'income');
+        const expenseFiltered = filtered.filter(t => t.type === 'expense');
+        const incomeTotal = incomeFiltered.reduce((sum, t) => sum + t.amount, 0);
+        const expenseTotal = expenseFiltered.reduce((sum, t) => sum + t.amount, 0);
+
+        console.log('Total transactions:', transactions.length, 'Filtered:', filtered.length);
+        console.log('Income txs:', incomeFiltered.length, 'Total: $' + incomeTotal);
+        console.log('Expense txs:', expenseFiltered.length, 'Total: $' + expenseTotal);
+        console.log('Filtered income transactions:', incomeFiltered.map(t => ({ date: t.date, name: t.name, amount: t.amount })));
+
+        return filtered.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
     }, [transactions, startDate, endDate]);
     
     const { totalIncome, totalExpenses, netProfit } = useMemo(() => {
@@ -224,24 +255,26 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ transactions, categories,
             <div className="flex flex-col sm:flex-row flex-wrap items-center gap-4">
                 <div className="flex items-center gap-2 w-full sm:w-auto">
                     <label htmlFor="start-date" className="text-sm font-medium text-zinc-400">From</label>
-                    <input type="date" id="start-date" value={startDate} onChange={e => setStartDate(e.target.value)} className="bg-zinc-800 flex-grow p-2 rounded-md border-zinc-700 focus:ring-sky-500 focus:border-sky-500" />
+                    <input type="date" id="start-date" value={startDate} onChange={e => { setStartDate(e.target.value); setActivePreset(''); }} className="bg-zinc-800 flex-grow p-2 rounded-md border-zinc-700 focus:ring-sky-500 focus:border-sky-500" />
                 </div>
                 <div className="flex items-center gap-2 w-full sm:w-auto">
                     <label htmlFor="end-date" className="text-sm font-medium text-zinc-400">To</label>
-                    <input type="date" id="end-date" value={endDate} onChange={e => setEndDate(e.target.value)} className="bg-zinc-800 flex-grow p-2 rounded-md border-zinc-700 focus:ring-sky-500 focus:border-sky-500" />
+                    <input type="date" id="end-date" value={endDate} onChange={e => { setEndDate(e.target.value); setActivePreset(''); }} className="bg-zinc-800 flex-grow p-2 rounded-md border-zinc-700 focus:ring-sky-500 focus:border-sky-500" />
                 </div>
                 <Button onClick={handleExport} variant="secondary" className="w-full sm:w-auto">Export</Button>
             </div>
              <div className="flex flex-wrap items-center justify-start gap-2 border-t border-zinc-800 pt-2">
                  {datePresets.map(preset => (
-                    <Button 
+                    <Button
                         key={preset.label}
                         onClick={() => {
-                            const { startDate: newStart, endDate: newEnd } = preset.getRange(todayDate);
+                            const now = new Date();
+                            const { startDate: newStart, endDate: newEnd } = preset.getRange(now);
                             setStartDate(newStart);
                             setEndDate(newEnd);
+                            setActivePreset(preset.label);
                         }}
-                        variant="ghost"
+                        variant={activePreset === preset.label ? 'secondary' : 'ghost'}
                         size="sm"
                         className="text-xs px-2 py-1"
                     >
