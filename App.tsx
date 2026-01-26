@@ -114,20 +114,39 @@ const App: React.FC = () => {
 
       setCategories(finalCategories);
       
-      // 3. Fetch Transactions (with explicit high limit to get all rows)
-      const { data: transactionsData, error: transactionsError } = await supabase
-        .from('transactions')
-        .select('*')
-        .eq('user_id', session.user.id)
-        .order('date', { ascending: false })
-        .limit(10000);
+      // 3. Fetch ALL Transactions using pagination (Supabase caps at 1000 per request)
+      let allTransactions: Transaction[] = [];
+      let hasMore = true;
+      let page = 0;
+      const pageSize = 1000;
 
-      if (transactionsData && transactionsData.length > 0) {
-         setTransactions(transactionsData);
-      } else {
-          if (transactionsError) console.error('Error fetching transactions:', transactionsError.message);
-          setTransactions([]);
+      while (hasMore) {
+        const from = page * pageSize;
+        const to = from + pageSize - 1;
+
+        const { data: transactionsData, error: transactionsError } = await supabase
+          .from('transactions')
+          .select('*')
+          .eq('user_id', session.user.id)
+          .order('date', { ascending: false })
+          .range(from, to);
+
+        if (transactionsError) {
+          console.error('Error fetching transactions:', transactionsError.message);
+          break;
+        }
+
+        if (transactionsData && transactionsData.length > 0) {
+          allTransactions = [...allTransactions, ...transactionsData];
+          hasMore = transactionsData.length === pageSize;
+          page++;
+        } else {
+          hasMore = false;
+        }
       }
+
+      console.log(`Loaded ${allTransactions.length} total transactions via pagination`);
+      setTransactions(allTransactions);
       
       setLoading(false);
     };
