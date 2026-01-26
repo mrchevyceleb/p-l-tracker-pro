@@ -114,12 +114,13 @@ const App: React.FC = () => {
 
       setCategories(finalCategories);
       
-      // 3. Fetch Transactions
+      // 3. Fetch Transactions (with explicit high limit to get all rows)
       const { data: transactionsData, error: transactionsError } = await supabase
         .from('transactions')
         .select('*')
         .eq('user_id', session.user.id)
-        .order('date', { ascending: false });
+        .order('date', { ascending: false })
+        .limit(10000);
 
       if (transactionsData && transactionsData.length > 0) {
          setTransactions(transactionsData);

@@ -60,8 +60,8 @@ const datePresets = [
         getRange: (today: Date) => {
             const quarter = Math.floor(today.getMonth() / 3);
             const start = new Date(today.getFullYear(), quarter * 3, 1);
-            const end = new Date(start.getFullYear(), start.getMonth() + 3, 0);
-            return { startDate: formatDate(start), endDate: formatDate(end) };
+            // Cap at today to exclude future recurring projections
+            return { startDate: formatDate(start), endDate: formatDate(today) };
         }
     },
     {
@@ -90,8 +90,8 @@ const datePresets = [
         label: 'This Year',
         getRange: (today: Date) => {
             const start = new Date(today.getFullYear(), 0, 1);
-            const end = new Date(today.getFullYear(), 11, 31);
-            return { startDate: formatDate(start), endDate: formatDate(end) };
+            // Cap at today to exclude future recurring projections
+            return { startDate: formatDate(start), endDate: formatDate(today) };
         }
     }
 ];
