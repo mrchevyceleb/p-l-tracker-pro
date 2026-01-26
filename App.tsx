@@ -492,11 +492,13 @@ const App: React.FC = () => {
             )}
             
             {view === 'subscriptions' && (
-            <SubscriptionsPage 
-                transactions={transactions} 
-                categories={categories} 
+            <SubscriptionsPage
+                transactions={transactions}
+                categories={categories}
                 onManageSeries={handleOpenRecurringManager}
                 onDeleteSeries={handleDeleteSeries}
+                onAddTransaction={handleAddTransaction}
+                onAddRecurringTransaction={handleAddRecurringTransactions}
             />
             )}
         </div>
