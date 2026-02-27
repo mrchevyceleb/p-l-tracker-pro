@@ -65,18 +65,46 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
   };
 
   const handleSubmit = async () => {
+    // Validate required fields
     if (!formData.name || !formData.amount || !formData.date) {
         alert("Please fill in Date, Name, and Amount.");
         return;
     }
 
+    const parsedAmount = parseFloat(formData.amount);
+
+    // Validate amount
+    if (isNaN(parsedAmount) || parsedAmount <= 0) {
+        alert("Amount must be a positive number.");
+        return;
+    }
+
+    if (parsedAmount > 999999999.99) {
+        alert("Amount exceeds maximum limit of $999,999,999.99");
+        return;
+    }
+
+    // Round to 2 decimal places to avoid floating point issues
+    const roundedAmount = Math.round(parsedAmount * 100) / 100;
+
+    // Sanitize name (basic XSS prevention)
+    const sanitizedname = formData.name
+        .replace(/<[^>]*>/g, '')  // Remove HTML tags
+        .trim()
+        .slice(0, 200);  // Limit to 200 characters
+
+    if (!sanitizedname) {
+        alert("Name cannot be empty.");
+        return;
+    }
+
     const transactionData: Omit<Transaction, 'id'> = {
         date: formData.date,
-        name: formData.name,
+        name: sanitizedname,
         type: formData.type,
-        amount: parseFloat(formData.amount),
+        amount: roundedAmount,
         category_id: formData.category_id || null,
-        notes: formData.notes
+        notes: formData.notes.trim().slice(0, 500)  // Limit notes to 500 characters
     };
 
     if (isRecurring) {

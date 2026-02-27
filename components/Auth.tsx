@@ -32,7 +32,22 @@ export default function Auth() {
         if (error) throw error;
       }
     } catch (error: any) {
-      setMessage({ type: 'error', text: error.message });
+      console.error('Authentication error:', error);
+      
+      // Map specific error codes to user-friendly messages
+      let userMessage = 'Authentication failed. Please try again.';
+      
+      if (error.message.includes('Invalid login credentials')) {
+        userMessage = 'Invalid email or password. Please check your credentials.';
+      } else if (error.message.includes('Email not confirmed')) {
+        userMessage = 'Please verify your email address before signing in.';
+      } else if (error.message.includes('User already registered')) {
+        userMessage = 'This email is already registered. Please sign in instead.';
+      } else if (error.message.includes('Weak password')) {
+        userMessage = 'Password is too weak. Please use a stronger password.';
+      }
+      
+      setMessage({ type: 'error', text: userMessage });
     } finally {
       setLoading(false);
     }
