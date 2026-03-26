@@ -17,6 +17,7 @@ interface TransactionsGridProps {
   onManageRecurringSeries?: (recurringId: string) => void;
   requestSort: (key: keyof Transaction) => void;
   sortConfig: { key: keyof Transaction | null; direction: 'ascending' | 'descending' };
+  isViewOnly?: boolean;
 }
 
 const EditRow: React.FC<{
@@ -100,7 +101,7 @@ const SortableHeader: React.FC<{
 };
 
 
-const TransactionsGrid: React.FC<TransactionsGridProps> = ({ transactions, categories, onAddTransaction, onUpdateTransaction, onDeleteTransaction, onAddRecurringTransactions, onUpdateTransactionSeries, onManageRecurringSeries, requestSort, sortConfig }) => {
+const TransactionsGrid: React.FC<TransactionsGridProps> = ({ transactions, categories, onAddTransaction, onUpdateTransaction, onDeleteTransaction, onAddRecurringTransactions, onUpdateTransactionSeries, onManageRecurringSeries, requestSort, sortConfig, isViewOnly }) => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [isAdding, setIsAdding] = useState(false);
   const [isRecurringModalOpen, setIsRecurringModalOpen] = useState(false);
@@ -206,7 +207,7 @@ const TransactionsGrid: React.FC<TransactionsGridProps> = ({ transactions, categ
                   <SortableHeader columnKey="category_id" title="Category" requestSort={requestSort} sortConfig={sortConfig} />
                   <SortableHeader columnKey="amount" title="Amount" requestSort={requestSort} sortConfig={sortConfig} className="text-right" />
                   <th className="p-4 font-semibold text-sm uppercase text-zinc-400">Notes</th>
-                  <th className="p-4 font-semibold text-sm uppercase text-zinc-400">Actions</th>
+                  {!isViewOnly && <th className="p-4 font-semibold text-sm uppercase text-zinc-400">Actions</th>}
                 </tr>
               </thead>
               <tbody>
@@ -226,8 +227,8 @@ const TransactionsGrid: React.FC<TransactionsGridProps> = ({ transactions, categ
                     <td data-label="Amount" className={`text-right font-mono ${tx.type === 'income' ? 'text-green-400' : 'text-red-400'}`}>{formatCurrency(tx.amount)}</td>
                     <td data-label="Notes" className="text-zinc-400">
                       <div className="flex items-center justify-end md:justify-start gap-2">
-                        {tx.recurring_id && (
-                          <button 
+                        {tx.recurring_id && !isViewOnly && (
+                          <button
                             onClick={() => onManageRecurringSeries && onManageRecurringSeries(tx.recurring_id!)}
                             className="text-sky-400 hover:text-sky-300 transition-colors p-1 rounded hover:bg-zinc-700/50 group relative"
                             title="Manage Series (Cancel/Extend)"
@@ -240,12 +241,14 @@ const TransactionsGrid: React.FC<TransactionsGridProps> = ({ transactions, categ
                         <span>{tx.notes}</span>
                       </div>
                     </td>
+                    {!isViewOnly && (
                     <td data-label="Actions">
                       <div className="flex justify-end gap-2">
                         <Button onClick={() => handleEditClick(tx)} variant="ghost" size="sm">Edit</Button>
                         <Button onClick={() => onDeleteTransaction(tx.id)} variant="danger" size="sm">Delete</Button>
                       </div>
                     </td>
+                    )}
                   </tr>
                   )
                 ))}
@@ -268,13 +271,13 @@ const TransactionsGrid: React.FC<TransactionsGridProps> = ({ transactions, categ
               </tbody>
             </table>
           </div>
-          {!isAdding && (
+          {!isAdding && !isViewOnly && (
               <div className="p-4 bg-zinc-900 border-t border-zinc-800 md:block hidden">
                   <Button onClick={() => setIsAdding(true)}>+ Add Transaction</Button>
               </div>
           )}
         </div>
-         {!isAdding && (
+         {!isAdding && !isViewOnly && (
               <div className="p-4 md:hidden">
                   <Button onClick={() => setIsAdding(true)} className="w-full">+ Add Transaction</Button>
               </div>

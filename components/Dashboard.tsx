@@ -101,6 +101,7 @@ interface DashboardPageProps {
   categories: Category[];
   taxRate: number;
   onOpenTaxSettings: () => void;
+  isViewOnly?: boolean;
 }
 
 const KPICard: React.FC<{ title: string; value: string; colorClass: string }> = ({ title, value, colorClass }) => (
@@ -131,7 +132,7 @@ const CustomTooltip: React.FC<any> = ({ active, payload, label }) => {
     return null;
 };
 
-const DashboardPage: React.FC<DashboardPageProps> = ({ transactions, categories, taxRate, onOpenTaxSettings }) => {
+const DashboardPage: React.FC<DashboardPageProps> = ({ transactions, categories, taxRate, onOpenTaxSettings, isViewOnly }) => {
     const [activePreset, setActivePreset] = useState<string>('Last 30 Days');
     const [startDate, setStartDate] = useState(() => {
         const now = new Date();
@@ -315,9 +316,11 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ transactions, categories,
                       <p className={`text-2xl font-black mt-1 ${netProfitAfterTax >= 0 ? 'text-green-400' : 'text-red-400'}`}>{formatCurrency(netProfitAfterTax)}</p>
                   </div>
               </div>
+              {!isViewOnly && (
               <Button onClick={onOpenTaxSettings} variant="secondary" className="w-full md:w-auto mt-4 md:mt-0 shrink-0">
                   Tax Settings
               </Button>
+              )}
           </div>
       </Card>
       

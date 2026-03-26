@@ -14,6 +14,7 @@ interface SubscriptionsPageProps {
   onDeleteSeries: (seriesId: string) => void;
   onAddTransaction: (tx: Omit<Transaction, 'id'>) => Promise<unknown>;
   onAddRecurringTransaction: (baseTx: Omit<Transaction, 'id'>, frequency: Frequency, endDate: string) => void;
+  isViewOnly?: boolean;
 }
 
 interface SubscriptionItem {
@@ -41,7 +42,8 @@ const SubscriptionsPage: React.FC<SubscriptionsPageProps> = ({
   onManageSeries,
   onDeleteSeries,
   onAddTransaction,
-  onAddRecurringTransaction
+  onAddRecurringTransaction,
+  isViewOnly
 }) => {
   const [filter, setFilter] = useState<'all' | 'active' | 'ended'>('active');
   const [sortField, setSortField] = useState<SortField>('nextDate');
@@ -225,9 +227,11 @@ const SubscriptionsPage: React.FC<SubscriptionsPageProps> = ({
             <p className="text-zinc-400 mt-1">Manage your recurring revenue and expenses.</p>
         </div>
         <div className="flex items-center gap-3">
+            {!isViewOnly && (
             <Button onClick={() => setIsAddModalOpen(true)} variant="primary">
               + Add Subscription
             </Button>
+            )}
             <div className="flex items-center gap-1 bg-zinc-900 p-1 rounded-lg border border-zinc-800">
                  <Button onClick={() => setFilter('active')} variant={filter === 'active' ? 'secondary' : 'ghost'} size="sm">Active</Button>
                  <Button onClick={() => setFilter('ended')} variant={filter === 'ended' ? 'secondary' : 'ghost'} size="sm">Ended</Button>
@@ -264,13 +268,13 @@ const SubscriptionsPage: React.FC<SubscriptionsPageProps> = ({
                 <SortHeader field="nextDate" label="Next Due" />
                 <SortHeader field="lastDate" label="End Date" />
                 <SortHeader field="status" label="Status" />
-                <th className="p-4 font-semibold text-sm uppercase text-zinc-400 text-right">Actions</th>
+                {!isViewOnly && <th className="p-4 font-semibold text-sm uppercase text-zinc-400 text-right">Actions</th>}
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-800">
               {filteredAndSortedSubscriptions.length === 0 ? (
                   <tr>
-                      <td colSpan={7} className="p-8 text-center text-zinc-500">
+                      <td colSpan={isViewOnly ? 6 : 7} className="p-8 text-center text-zinc-500">
                           No {filter === 'active' ? 'active' : filter === 'ended' ? 'ended' : ''} subscriptions found.
                       </td>
                   </tr>
@@ -311,6 +315,7 @@ const SubscriptionsPage: React.FC<SubscriptionsPageProps> = ({
                             {sub.status}
                         </span>
                     </td>
+                    {!isViewOnly && (
                     <td className="p-4 text-right" data-label="Actions">
                         <div className="flex items-center justify-end gap-2">
                              <Button onClick={() => onManageSeries(sub.id)} variant="secondary" size="sm">
@@ -327,6 +332,7 @@ const SubscriptionsPage: React.FC<SubscriptionsPageProps> = ({
                             </button>
                         </div>
                     </td>
+                    )}
                     </tr>
                 ))
               )}

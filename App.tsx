@@ -36,19 +36,22 @@ const App: React.FC = () => {
   const [isCategoryManagerOpen, setIsCategoryManagerOpen] = useState(false);
   const [isTaxSettingsOpen, setIsTaxSettingsOpen] = useState(false);
   const [isQuickAddOpen, setIsQuickAddOpen] = useState(false);
-  
+
   // Recurring Series Management
   const [managingSeriesId, setManagingSeriesId] = useState<string | null>(null);
 
   // Deletion Modal States
   const [deleteSeriesCandidateId, setDeleteSeriesCandidateId] = useState<string | null>(null);
   const [deleteRecurringTxCandidate, setDeleteRecurringTxCandidate] = useState<Transaction | null>(null);
-  
+
   // Update to use TaxConfig object
   const [taxConfig, setTaxConfig] = useLocalStorage<TaxConfig>('taxConfig', DEFAULT_TAX_CONFIG);
-  
+
   const [loading, setLoading] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+
+  // View-only access for shared viewers
+  const [isViewOnly, setIsViewOnly] = useState(false);
 
   // Auth Handling
   useEffect(() => {
@@ -71,50 +74,70 @@ const App: React.FC = () => {
   useEffect(() => {
     const fetchData = async () => {
       if (!session) return;
-      
+
       setLoading(true);
-      
-      // 1. Fetch Categories for this user
+
+      // Check if this user is a shared viewer
+      let isViewer = false;
+      let dataOwnerId = session.user.id;
+
+      if (session.user.email) {
+        const { data: sharedAccess, error: shareError } = await supabase
+          .from('shared_access')
+          .select('owner_id, viewer_email')
+          .eq('viewer_email', session.user.email)
+          .eq('role', 'view')
+          .order('created_at')
+          .limit(1);
+
+        if (!shareError && sharedAccess && sharedAccess.length > 0) {
+          isViewer = true;
+          dataOwnerId = sharedAccess[0].owner_id;
+        }
+      }
+
+      setIsViewOnly(isViewer);
+
+      // 1. Fetch Categories for the data owner
       const { data: categoriesData, error: categoriesError } = await supabase
         .from('categories')
         .select('*')
-        .eq('user_id', session.user.id) 
+        .eq('user_id', dataOwnerId)
         .order('name');
-      
+
       if (categoriesError) {
           console.error('Error fetching categories:', categoriesError.message);
       }
 
       let finalCategories: Category[] = [];
 
-      // 2. Handle Seeding if New User (No categories found)
-      if (categoriesData && categoriesData.length === 0) {
-          // Prepare seed data with the current user_id
+      // 2. Handle Seeding if New User (No categories found) - only for owners
+      if (!isViewer && categoriesData && categoriesData.length === 0) {
           const seedPayload = SEED_CATEGORIES.map((cat) => ({
               name: cat.name,
               type: cat.type,
               deductibility_percentage: cat.deductibility_percentage,
               user_id: session.user.id
           }));
-          
+
           const { data: seededCategories, error: seedError } = await supabase
               .from('categories')
               .insert(seedPayload)
               .select();
-              
+
           if (!seedError && seededCategories) {
               finalCategories = seededCategories;
           } else {
               console.error("Error seeding categories:", seedError?.message);
-              finalCategories = []; 
+              finalCategories = [];
           }
       } else if (categoriesData) {
           finalCategories = categoriesData;
       }
 
       setCategories(finalCategories);
-      
-      // 3. Fetch ALL Transactions using pagination (Supabase caps at 1000 per request)
+
+      // 3. Fetch ALL Transactions using pagination
       let allTransactions: Transaction[] = [];
       let hasMore = true;
       let page = 0;
@@ -127,7 +150,7 @@ const App: React.FC = () => {
         const { data: transactionsData, error: transactionsError } = await supabase
           .from('transactions')
           .select('*')
-          .eq('user_id', session.user.id)
+          .eq('user_id', dataOwnerId)
           .order('date', { ascending: false })
           .range(from, to);
 
@@ -147,7 +170,7 @@ const App: React.FC = () => {
 
       console.log(`Loaded ${allTransactions.length} total transactions via pagination`);
       setTransactions(allTransactions);
-      
+
       setLoading(false);
     };
 
@@ -157,7 +180,7 @@ const App: React.FC = () => {
   // --- Handlers ---
 
   const handleAddTransaction = async (tx: Omit<Transaction, 'id'>): Promise<unknown> => {
-      if (!session) return;
+      if (!session || isViewOnly) return;
 
       const payload = { ...tx, user_id: session.user.id };
       const { data, error } = await supabase.from('transactions').insert(payload).select().single();
@@ -174,7 +197,7 @@ const App: React.FC = () => {
   };
 
   const handleImportTransactions = async (newTransactions: Omit<Transaction, 'id'>[]) => {
-      if (!session) return;
+      if (!session || isViewOnly) return;
       if (newTransactions.length === 0) return;
 
       const payloads = newTransactions.map(tx => ({
@@ -197,6 +220,7 @@ const App: React.FC = () => {
   };
 
   const handleUpdateTransaction = async (updatedTx: Transaction) => {
+    if (isViewOnly) return;
     // Optimistic Update
     setTransactions(prev => prev.map(t => t.id === updatedTx.id ? updatedTx : t).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
     
@@ -220,6 +244,7 @@ const App: React.FC = () => {
   };
 
   const handleDeleteTransaction = async (id: string) => {
+    if (isViewOnly) return;
     // Check if it's recurring
     const tx = transactions.find(t => t.id === id);
     if (tx?.recurring_id) {
@@ -232,6 +257,7 @@ const App: React.FC = () => {
   };
 
   const performDeleteTransaction = async (id: string) => {
+      if (isViewOnly) return;
       setTransactions(prev => prev.filter(t => t.id !== id));
       const { error } = await supabase.from('transactions').delete().eq('id', id);
       if (error) {
@@ -240,6 +266,7 @@ const App: React.FC = () => {
   };
   
   const handleDeleteTransactionSeries = async () => {
+      if (isViewOnly) return;
       if (!deleteRecurringTxCandidate?.recurring_id) return;
       const recId = deleteRecurringTxCandidate.recurring_id;
 
@@ -255,7 +282,7 @@ const App: React.FC = () => {
   // --- Recurring Logic ---
 
   const handleAddRecurringTransactions = async (baseTx: Omit<Transaction, 'id'>, frequency: Frequency, endDate: string) => {
-    if (!session) return;
+    if (!session || isViewOnly) return;
     
     const recurringId = uuidv4();
     const newTransactions: any[] = [];
@@ -295,6 +322,7 @@ const App: React.FC = () => {
   };
   
   const handleUpdateTransactionSeries = async (recurringId: string, updates: Partial<Omit<Transaction, 'id' | 'date' | 'recurring_id'>>) => {
+      if (isViewOnly) return;
       // Optimistic Update
       setTransactions(prev => prev.map(t => {
           if (t.recurring_id === recurringId) {
@@ -312,6 +340,7 @@ const App: React.FC = () => {
   };
   
   const handleUpdateEndDate = async (recurringId: string, newEndDate: string) => {
+      if (isViewOnly) return;
       // 1. Delete future transactions that are now out of bounds
       const deadLine = new Date(newEndDate);
       
@@ -370,7 +399,7 @@ const App: React.FC = () => {
 
   // --- Categories ---
   const handleAddCategory = async (category: Omit<Category, 'id'>) => {
-      if (!session) return;
+      if (!session || isViewOnly) return;
       
       const payload = { ...category, user_id: session.user.id };
       const { data, error } = await supabase.from('categories').insert(payload).select().single();
@@ -380,24 +409,29 @@ const App: React.FC = () => {
   };
   
   const handleUpdateCategory = async (category: Category) => {
+      if (isViewOnly) return;
       setCategories(prev => prev.map(c => c.id === category.id ? category : c));
       await supabase.from('categories').update({ name: category.name, type: category.type, deductibility_percentage: category.deductibility_percentage }).eq('id', category.id);
   };
   
   const handleDeleteCategory = async (id: string) => {
+      if (isViewOnly) return;
       setCategories(prev => prev.filter(c => c.id !== id));
       await supabase.from('categories').delete().eq('id', id);
   };
 
   const handleOpenRecurringManager = (seriesId: string) => {
+      if (isViewOnly) return;
       setManagingSeriesId(seriesId);
   };
 
   const handleDeleteSeries = (seriesId: string) => {
+      if (isViewOnly) return;
       setDeleteSeriesCandidateId(seriesId);
   };
-  
+
   const confirmDeleteSeries = async () => {
+      if (isViewOnly) return;
       if (!deleteSeriesCandidateId) return;
       setTransactions(prev => prev.filter(t => t.recurring_id !== deleteSeriesCandidateId));
       await supabase.from('transactions').delete().eq('recurring_id', deleteSeriesCandidateId);
@@ -405,6 +439,7 @@ const App: React.FC = () => {
   };
 
   const handleEndSubscription = async () => {
+      if (isViewOnly) return;
       if (!deleteSeriesCandidateId) return;
 
       // Get today's date to use as cutoff
@@ -436,14 +471,15 @@ const App: React.FC = () => {
 
   return (
     <div className="flex h-screen bg-zinc-950 text-zinc-200 font-sans overflow-hidden">
-      <Sidebar 
-        view={view} 
-        setView={setView} 
-        onManageCategories={() => setIsCategoryManagerOpen(true)} 
+      <Sidebar
+        view={view}
+        setView={setView}
+        onManageCategories={() => setIsCategoryManagerOpen(true)}
         onManageTaxes={() => setIsTaxSettingsOpen(true)}
         onQuickAdd={() => setIsQuickAddOpen(true)}
         isOpen={isSidebarOpen}
         setIsOpen={setIsSidebarOpen}
+        isViewOnly={isViewOnly}
       />
       
       {/* Overlay for mobile when sidebar is open */}
@@ -457,21 +493,22 @@ const App: React.FC = () => {
       
       <main className="flex-1 flex flex-col h-full relative overflow-hidden">
         {/* Header for Mobile and Desktop when sidebar is closed */}
-        <Header onToggleSidebar={() => setIsSidebarOpen(true)} title={view} isSidebarOpen={isSidebarOpen} />
+        <Header onToggleSidebar={() => setIsSidebarOpen(true)} title={view} isSidebarOpen={isSidebarOpen} isViewOnly={isViewOnly} />
 
         <div className="flex-1 overflow-auto">
             {view === 'dashboard' && (
-            <DashboardPage 
-                transactions={transactions} 
-                categories={categories} 
-                taxRate={taxConfig.mode === 'simple' ? taxConfig.simpleRate : calculateTax(transactions, categories, taxConfig).effectiveRate} 
+            <DashboardPage
+                transactions={transactions}
+                categories={categories}
+                taxRate={taxConfig.mode === 'simple' ? taxConfig.simpleRate : calculateTax(transactions, categories, taxConfig).effectiveRate}
                 onOpenTaxSettings={() => setIsTaxSettingsOpen(true)}
+                isViewOnly={isViewOnly}
             />
             )}
             
             {view === 'transactions' && (
-            <TransactionsPage 
-                transactions={transactions} 
+            <TransactionsPage
+                transactions={transactions}
                 categories={categories}
                 onAddTransaction={handleAddTransaction}
                 onImportTransactions={handleImportTransactions}
@@ -480,6 +517,7 @@ const App: React.FC = () => {
                 onAddRecurringTransactions={handleAddRecurringTransactions}
                 onUpdateTransactionSeries={handleUpdateTransactionSeries}
                 onManageRecurringSeries={handleOpenRecurringManager}
+                isViewOnly={isViewOnly}
             />
             )}
             
@@ -499,6 +537,7 @@ const App: React.FC = () => {
                 onDeleteSeries={handleDeleteSeries}
                 onAddTransaction={handleAddTransaction}
                 onAddRecurringTransaction={handleAddRecurringTransactions}
+                isViewOnly={isViewOnly}
             />
             )}
         </div>

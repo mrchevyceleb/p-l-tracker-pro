@@ -13,6 +13,7 @@ interface SidebarProps {
   onQuickAdd: () => void;
   isOpen: boolean;
   setIsOpen: (isOpen: boolean) => void;
+  isViewOnly?: boolean;
 }
 
 const NavButton: React.FC<{
@@ -32,7 +33,7 @@ const NavButton: React.FC<{
   </button>
 );
 
-const Sidebar: React.FC<SidebarProps> = ({ view, setView, onManageCategories, onManageTaxes, onQuickAdd, isOpen, setIsOpen }) => {
+const Sidebar: React.FC<SidebarProps> = ({ view, setView, onManageCategories, onManageTaxes, onQuickAdd, isOpen, setIsOpen, isViewOnly }) => {
   const [userEmail, setUserEmail] = useState<string | undefined>('');
 
   useEffect(() => {
@@ -109,15 +110,24 @@ const Sidebar: React.FC<SidebarProps> = ({ view, setView, onManageCategories, on
       </div>
       
       <div className="flex flex-col gap-2 mt-auto">
-          <Button onClick={() => { onQuickAdd(); setIsOpen(false); }} className="w-full bg-green-600 hover:bg-green-700 text-white focus:ring-green-500">
-             + Quick Add
-          </Button>
-          <Button onClick={() => { onManageCategories(); setIsOpen(false); }} variant="secondary" className="w-full">
-            Manage Categories
-          </Button>
-          <Button onClick={() => { onManageTaxes(); setIsOpen(false); }} variant="secondary" className="w-full">
-            Tax Settings
-          </Button>
+          {isViewOnly && (
+            <div className="bg-sky-500/10 border border-sky-500/20 rounded-lg px-3 py-2 mb-2" role="status" aria-label="You have view-only access">
+              <div className="text-xs font-medium text-sky-400 text-center">VIEW ONLY</div>
+            </div>
+          )}
+          {!isViewOnly && (
+            <>
+              <Button onClick={() => { onQuickAdd(); setIsOpen(false); }} className="w-full bg-green-600 hover:bg-green-700 text-white focus:ring-green-500">
+                 + Quick Add
+              </Button>
+              <Button onClick={() => { onManageCategories(); setIsOpen(false); }} variant="secondary" className="w-full">
+                Manage Categories
+              </Button>
+              <Button onClick={() => { onManageTaxes(); setIsOpen(false); }} variant="secondary" className="w-full">
+                Tax Settings
+              </Button>
+            </>
+          )}
           <div className="border-t border-zinc-800 pt-4 mt-2">
             <div className="text-xs text-zinc-500 text-center mb-2 truncate px-2">{userEmail}</div>
             <button 

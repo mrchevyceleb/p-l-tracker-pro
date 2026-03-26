@@ -104,18 +104,20 @@ interface TransactionsPageProps {
   onAddRecurringTransactions: (baseTx: Omit<Transaction, 'id'>, frequency: Frequency, endDate: string) => void;
   onUpdateTransactionSeries: (recurringId: string, updates: Partial<Omit<Transaction, 'id' | 'date' | 'recurring_id'>>) => void;
   onManageRecurringSeries: (recurringId: string) => void;
+  isViewOnly?: boolean;
 }
 
-const TransactionsPage: React.FC<TransactionsPageProps> = ({ 
-  transactions, 
-  categories, 
+const TransactionsPage: React.FC<TransactionsPageProps> = ({
+  transactions,
+  categories,
   onAddTransaction,
   onImportTransactions,
-  onUpdateTransaction, 
+  onUpdateTransaction,
   onDeleteTransaction,
   onAddRecurringTransactions,
   onUpdateTransactionSeries,
-  onManageRecurringSeries
+  onManageRecurringSeries,
+  isViewOnly
 }) => {
   const [startDate, setStartDate] = useState(() => {
     const today = new Date();
@@ -293,7 +295,7 @@ const TransactionsPage: React.FC<TransactionsPageProps> = ({
                     <input type="date" id="end-date" value={endDate} onChange={e => setEndDate(e.target.value)} className="bg-zinc-800 flex-grow p-2 rounded-md border-zinc-700 focus:ring-sky-500 focus:border-sky-500" />
                 </div>
                 <div className="flex gap-2 w-full sm:w-auto">
-                    <Button onClick={handleImportClick} variant="secondary" className="flex-1">Import CSV</Button>
+                    {!isViewOnly && <Button onClick={handleImportClick} variant="secondary" className="flex-1">Import CSV</Button>}
                     <Button onClick={handleExport} variant="secondary" className="flex-1">Export</Button>
                 </div>
             </div>
@@ -354,6 +356,7 @@ const TransactionsPage: React.FC<TransactionsPageProps> = ({
         onManageRecurringSeries={onManageRecurringSeries}
         requestSort={requestSort}
         sortConfig={sortConfig}
+        isViewOnly={isViewOnly}
       />
 
       <CSVImportModal
