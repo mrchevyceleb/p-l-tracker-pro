@@ -198,22 +198,45 @@ const CSVImportModal: React.FC<CSVImportModalProps> = ({
   const validTransactions = getMappedTransactions().filter(t => t.isValid);
 
   const handleImport = async () => {
+    // Rate limiting: Maximum 10,000 transactions per import
+    const MAX_IMPORT_SIZE = 10000;
+    
+    if (validTransactions.length > MAX_IMPORT_SIZE) {
+      alert(`Import limited to ${MAX_IMPORT_SIZE} transactions. Please split your file into smaller chunks.`);
+      return;
+    }
+
+    // Validate all transactions have required fields
+    const invalidTransactions = validTransactions.filter(tx => 
+      !tx.date || !tx.amount || tx.amount <= 0
+    );
+    
+    if (invalidTransactions.length > 0) {
+      alert(`${invalidTransactions.length} transactions have invalid data and will be skipped.`);
+    }
+
     setIsImporting(true);
 
-    const transactions = validTransactions.map(tx => ({
-      date: tx.date,
-      name: tx.name || 'Imported transaction',
-      type: tx.type,
-      amount: tx.amount,
-      category_id: tx.category_id,
-      notes: 'Imported from CSV'
-    }));
+    const transactions = validTransactions
+      .filter(tx => tx.date && tx.amount > 0)  // Double-check validation
+      .map(tx => ({
+        date: tx.date,
+        name: (tx.name || 'Imported transaction')
+          .replace(/<[^>]*>/g, '')  // Basic XSS prevention
+          .trim()
+          .slice(0, 200),  // Limit description length
+        type: tx.type,
+        amount: Math.round(tx.amount * 100) / 100,  // Round to 2 decimals
+        category_id: tx.category_id,
+        notes: 'Imported from CSV'.slice(0, 500)
+      }));
 
     try {
       await onImport(transactions);
-    } catch (error) {
+      alert(`Successfully imported ${transactions.length} transactions.`);
+    } catch (error: any) {
       console.error('Import failed:', error);
-      alert('Import failed. Check the console for details.');
+      alert('Import failed. Please check the console for details and try again.');
     }
 
     setIsImporting(false);

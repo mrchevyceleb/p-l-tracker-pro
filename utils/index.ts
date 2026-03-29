@@ -1,4 +1,3 @@
-
 import { Transaction, Category } from '../types';
 
 export const formatCurrency = (amount: number): string => {
@@ -56,3 +55,6 @@ export const exportToCsv = (transactions: Transaction[], categories: Category[],
   link.click();
   document.body.removeChild(link);
 };
+
+// Re-export validation utilities
+export * from './validation';

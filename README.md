@@ -9,6 +9,12 @@ Simple, powerful profit and loss tracking for freelancers and small businesses. 
 
 ---
 
+## ⚠️ Security Notice
+
+**IMPORTANT:** This application handles sensitive financial data. Please review [SECURITY.md](./SECURITY.md) before deployment and follow all security best practices.
+
+---
+
 ## Features
 
 - **Dashboard** - Real-time P&L overview with charts and metrics
@@ -58,7 +64,24 @@ cd p-l-tracker-pro
 npm install
 ```
 
-### 2. Configure Supabase
+### 2. Configure Environment Variables
+
+**CRITICAL:** Create a `.env.local` file (DO NOT commit to git):
+
+```bash
+cp .env.example .env.local
+```
+
+Edit `.env.local` with your Supabase credentials:
+
+```env
+VITE_SUPABASE_URL=https://your-project.supabase.co
+VITE_SUPABASE_ANON_KEY=your-anon-key
+```
+
+> ⚠️ **Never commit `.env.local` to version control!** It contains sensitive credentials.
+
+### 3. Configure Supabase
 
 Create a Supabase project and apply the schema:
 
@@ -73,19 +96,19 @@ supabase link --project-ref YOUR_PROJECT_REF
 supabase db push
 ```
 
-### 3. Set Environment Variables
-
-Create `.env.local`:
-
-```env
-VITE_SUPABASE_URL=https://your-project.supabase.co
-VITE_SUPABASE_ANON_KEY=your-anon-key
-```
+**Important:** The schema includes Row Level Security (RLS) policies that must be enabled for security.
 
 ### 4. Run Locally
 
 ```bash
 npm run dev
+```
+
+### 5. Build for Production
+
+```bash
+npm run build
+npm run preview
 ```
 
 ---
@@ -110,6 +133,13 @@ npm run dev
 - `description`: Notes
 - `is_recurring`: Part of a recurring series
 - `recurring_series_id`: Link to series
+
+### Security
+
+- **Row Level Security (RLS)** is enabled on all tables
+- Users can only access their own data
+- All operations are scoped to authenticated users
+- See [SECURITY.md](./SECURITY.md) for details
 
 ---
 
@@ -155,10 +185,107 @@ p-l-tracker-pro/
 │   └── useLocalStorage.ts    # Persist preferences
 ├── utils/
 │   ├── supabase.ts          # Supabase client
-│   └── tax.ts               # Tax calculations
+│   ├── tax.ts               # Tax calculations
+│   ├── validation.ts        # Input validation
+│   └── index.ts             # Utility exports
 ├── types.ts                  # TypeScript definitions
 └── constants.ts              # Default values
 ```
+
+---
+
+## Security
+
+This application handles sensitive financial data. Security is a top priority.
+
+### Implemented Security Measures
+
+- ✅ Environment variables for credentials
+- ✅ Row Level Security (RLS) on all database tables
+- ✅ Input validation and sanitization
+- ✅ Error boundaries for graceful error handling
+- ✅ TypeScript strict mode enabled
+- ✅ Rate limiting on import operations
+- ✅ XSS prevention on user inputs
+
+### Security Checklist
+
+Before deploying to production:
+
+- [ ] Remove all hardcoded credentials
+- [ ] Set up environment variables
+- [ ] Enable and test RLS policies
+- [ ] Review database permissions
+- [ ] Enable HTTPS only
+- [ ] Set up monitoring and logging
+
+See [SECURITY.md](./SECURITY.md) for complete security guidelines.
+
+---
+
+## Development
+
+### Running Tests
+
+```bash
+npm test
+```
+
+### Type Checking
+
+```bash
+npx tsc --noEmit
+```
+
+### Linting
+
+```bash
+npm run lint
+```
+
+### Code Formatting
+
+```bash
+npm run format
+```
+
+---
+
+## Troubleshooting
+
+### Common Issues
+
+**"Supabase environment variables not configured"**
+- Ensure `.env.local` exists with valid credentials
+- Restart your dev server after changing environment variables
+
+**"Row Level Security policy violation"**
+- Verify RLS policies are correctly set up in Supabase
+- Check that the user is authenticated
+
+**"Failed to fetch transactions"**
+- Check your Supabase project is active
+- Verify network connectivity
+- Check browser console for detailed errors
+
+---
+
+## Contributing
+
+Contributions are welcome! Please follow these guidelines:
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+### Code Style
+
+- Use TypeScript for all new code
+- Follow existing code style and conventions
+- Add tests for new features
+- Update documentation as needed
 
 ---
 
